@@ -97,7 +97,7 @@ bot.onText(/\/start/, async (msg) => {
 📝 Iltimos, to'liq FIOyingizni namunadagidek kiriting.
 
 <b>Namuna:</b>
-• Aliyev Alisher Nuraliyevich
+• Aliyev Alisher Alisherivich
 • Aliyev Alisher Alisher og'li`;
 
   bot.sendMessage(chatId, message, { parse_mode: "HTML" });
