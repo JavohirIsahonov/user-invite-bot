@@ -2,8 +2,9 @@ const TelegramBot = require("node-telegram-bot-api");
 const axios = require("axios");
 const fs = require("fs").promises;
 const path = require("path");
+require("dotenv").config();
 
-const token = "8299910513:AAEY1puiQL-Ref3QntwzuDcduchMMKIHoWg";
+const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 const GROUP_ID = -1003087001212;
 const userState = {};
