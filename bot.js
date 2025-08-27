@@ -10,13 +10,12 @@ const GROUP_ID = -1003087001212;
 const userState = {};
 const USERS_FILE = path.join(__dirname, "users.json");
 
-// Users.json faylini yaratish yoki o'qish
 async function loadUsers() {
   try {
     const data = await fs.readFile(USERS_FILE, "utf8");
     return JSON.parse(data);
   } catch (error) {
-    // Fayl mavjud bo'lmasa bo'sh array qaytarish
+
     return [];
   }
 }
@@ -31,34 +30,26 @@ async function saveUsers(users) {
   }
 }
 
-// Userlarni solishtirish va o'chirish funksiyasi
 async function checkAndRemoveUsers() {
   try {
     console.log("Userlarni tekshirish boshlandi...");
     
-    // API dan ma'lumotlarni olish
     const apiResponse = await axios.get("https://group-backend-n1kr.onrender.com/api/users");
     const apiUsers = apiResponse.data;
     
-    // JSON fayldan ma'lumotlarni o'qish
     const localUsers = await loadUsers();
     
-    // API dagi telegram_id larni to'plash
     const apiTelegramIds = new Set(apiUsers.map(user => user.telegram_id.toString()));
     
-    // O'chirilgan userlarni topish
     const usersToRemove = localUsers.filter(localUser => 
       !apiTelegramIds.has(localUser.telegram_id.toString())
     );
     
-    // O'chirilgan userlarni guruhdan chiqarish va JSON dan o'chirish
     for (const user of usersToRemove) {
       try {
-        // Guruhdan chiqarish
         await bot.banChatMember(GROUP_ID, user.telegram_id);
         console.log(`User ${user.full_name} (${user.telegram_id}) guruhdan chiqarildi`);
         
-        // Userga xabar yuborish
         await bot.sendMessage(
           user.telegram_id,
           "❌ <b>Diqqat!</b>\n\nSiz ayrim sabablarga ko'ra guruhdan chetlatildingiz.",
@@ -70,7 +61,6 @@ async function checkAndRemoveUsers() {
       }
     }
     
-    // JSON fayldan o'chirilgan userlarni olib tashlash
     if (usersToRemove.length > 0) {
       const updatedUsers = localUsers.filter(localUser => 
         apiTelegramIds.has(localUser.telegram_id.toString())
@@ -104,16 +94,13 @@ bot.onText(/\/start/, async (msg) => {
   bot.sendMessage(chatId, message, { parse_mode: "HTML" });
 });
 
-// F.I.O qabul qilish
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   
-  // Agar user start bosib bo'lmagan bo'lsa yoki allaqachon ism bergan bo'lsa chiqib ketamiz
   if (!userState[chatId] || userState[chatId] !== "WAITING_FOR_FULLNAME") return;
   
   const fullName = msg.text.trim();
   
-  // Eng oddiy validatsiya — kamida 3 ta so'z bo'lishi kerak
   if (fullName.split(" ").length < 3) {
     return bot.sendMessage(
       chatId,
@@ -132,27 +119,22 @@ bot.on("message", async (msg) => {
       registered_at: new Date().toISOString()
     };
     
-    // Ma'lumotni serverga POST qilish
     try {
       await axios.post("https://group-backend-n1kr.onrender.com/api/users", userData);
       console.log("✅ User serverga muvaffaqqiyatli yuborildi");
     } catch (apiError) {
       console.error("❌ Serverga yuborishda xatolik:", apiError.message);
-      // API xatosi bo'lsa ham davom etamiz
     }
     
-    // JSON faylga ham saqlash
     try {
       const users = await loadUsers();
       
-      // Agar user allaqachon mavjud bo'lmasa qo'shish
       const existingUserIndex = users.findIndex(u => u.telegram_id === userData.telegram_id);
       if (existingUserIndex === -1) {
         users.push(userData);
         await saveUsers(users);
         console.log("✅ User users.json ga saqlandi");
       } else {
-        // Mavjud userni yangilash
         users[existingUserIndex] = userData;
         await saveUsers(users);
         console.log("✅ User users.json da yangilandi");
@@ -163,7 +145,6 @@ bot.on("message", async (msg) => {
     
     console.log("Link yaratish boshlandi...");
     
-    // 1 marttalik link yaratish
     try {
       const link = await bot.createChatInviteLink(GROUP_ID, {
         member_limit: 1,
@@ -187,7 +168,6 @@ ${link.invite_link}
     } catch (linkError) {
       console.error("❌ Link yaratishda xatolik:", linkError.message);
       
-      // Link yaratishda xatolik bo'lsa oddiy xabar yuboramiz
       await bot.sendMessage(
         chatId,
         "✅ <b>Rahmat!</b> Ro'yxatdan o'tish muvaffaqqiyatli yakunlandi!\n\n❌ Afsuski, guruh linkini yaratishda xatolik yuz berdi. Administrator bilan bog'laning.",
@@ -206,8 +186,7 @@ ${link.invite_link}
   }
 });
 
-// 2 daqiqada bir userlarni tekshirish
-setInterval(checkAndRemoveUsers, 2 * 60 * 1000); // 2 daqiqa = 120,000 ms
+setInterval(checkAndRemoveUsers, 2 * 60 * 1000);
 
 console.log("Bot ishga tushdi...");
 console.log("User tekshirish tizimi faol (har 2 daqiqada)...");
