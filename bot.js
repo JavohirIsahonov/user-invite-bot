@@ -6,7 +6,7 @@ require("dotenv").config();
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
-const GROUP_ID = -1003086206324; // Supergroup ID
+const GROUP_ID = -1002679983180;
 const userState = {};
 const USERS_FILE = path.join(__dirname, "users.json");
 
