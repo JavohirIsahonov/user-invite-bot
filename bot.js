@@ -6,7 +6,7 @@ require("dotenv").config();
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
-const GROUP_ID = -1003087001212;
+const GROUP_ID = -1003066732060;
 const userState = {};
 const USERS_FILE = path.join(__dirname, "users.json");
 
@@ -15,7 +15,6 @@ async function loadUsers() {
     const data = await fs.readFile(USERS_FILE, "utf8");
     return JSON.parse(data);
   } catch (error) {
-
     return [];
   }
 }
@@ -34,7 +33,7 @@ async function checkAndRemoveUsers() {
   try {
     console.log("Userlarni tekshirish boshlandi...");
     
-    const apiResponse = await axios.get("https://group-backend-n1kr.onrender.com/api/users");
+    const apiResponse = await axios.get("https://group-backend-01z3.onrender.com/api/users");
     const apiUsers = apiResponse.data;
     
     const localUsers = await loadUsers();
@@ -120,7 +119,7 @@ bot.on("message", async (msg) => {
     };
     
     try {
-      await axios.post("https://group-backend-n1kr.onrender.com/api/users", userData);
+      await axios.post("https://group-backend-01z3.onrender.com/api/users", userData);
       console.log("✅ User serverga muvaffaqqiyatli yuborildi");
     } catch (apiError) {
       console.error("❌ Serverga yuborishda xatolik:", apiError.message);
@@ -143,37 +142,17 @@ bot.on("message", async (msg) => {
       console.error("❌ JSON faylga saqlashda xatolik:", fileError.message);
     }
     
-    console.log("Link yaratish boshlandi...");
-    
-    try {
-      const link = await bot.createChatInviteLink(GROUP_ID, {
-        member_limit: 1,
-      });
-      
-      console.log("✅ Link muvaffaqqiyatli yaratildi:", link.invite_link);
-      
-      await bot.sendMessage(
-        chatId,
-        `✅ <b>Rahmat!</b> Ro'yxatdan o'tish muvaffaqqiyatli yakunlandi!
+    // ✅ Link yaratish olib tashlandi
+    await bot.sendMessage(
+      chatId,
+      `✅ <b>Rahmat!</b> Ro'yxatdan o'tish muvaffaqqiyatli yakunlandi!
 
-🔗 Mana sizning 1 martalik guruh linkingiz:
-${link.invite_link}
+📩 So'rovingiz qabul qilindi. 
+👨‍💻 Adminlarimiz ruxsat berganidan so'ng guruhga qo'shilish havolasini olasiz.`,
+      { parse_mode: "HTML" }
+    );
 
-ℹ️ Ushbu linkdan <b>faqat 1 marta</b> foydalanish mumkin.`,
-        { parse_mode: "HTML" }
-      );
-      
-      console.log("✅ Xabar userga yuborildi");
-      
-    } catch (linkError) {
-      console.error("❌ Link yaratishda xatolik:", linkError.message);
-      
-      await bot.sendMessage(
-        chatId,
-        "✅ <b>Rahmat!</b> Ro'yxatdan o'tish muvaffaqqiyatli yakunlandi!\n\n❌ Afsuski, guruh linkini yaratishda xatolik yuz berdi. Administrator bilan bog'laning.",
-        { parse_mode: "HTML" }
-      );
-    }
+    console.log("✅ Xabar userga yuborildi");
     
     // State ni tozalash
     delete userState[chatId];
