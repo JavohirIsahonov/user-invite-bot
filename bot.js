@@ -6,7 +6,7 @@ require("dotenv").config();
 
 const token = process.env.TELEGRAM_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
-const GROUP_ID = -1003066732060;
+const GROUP_ID = -1003086206324; // Supergroup ID
 const userState = {};
 const USERS_FILE = path.join(__dirname, "users.json");
 
@@ -19,7 +19,6 @@ async function loadUsers() {
   }
 }
 
-// Users.json ga saqlash
 async function saveUsers(users) {
   try {
     await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2), "utf8");
@@ -37,7 +36,6 @@ async function checkAndRemoveUsers() {
     const apiUsers = apiResponse.data;
     
     const localUsers = await loadUsers();
-    
     const apiTelegramIds = new Set(apiUsers.map(user => user.telegram_id.toString()));
     
     const usersToRemove = localUsers.filter(localUser => 
@@ -46,17 +44,14 @@ async function checkAndRemoveUsers() {
     
     for (const user of usersToRemove) {
       try {
+        // Userni ban qilish
         await bot.banChatMember(GROUP_ID, user.telegram_id);
-        console.log(`User ${user.full_name} (${user.telegram_id}) guruhdan chiqarildi`);
-        
-        await bot.sendMessage(
-          user.telegram_id,
-          "❌ <b>Diqqat!</b>\n\nSiz ayrim sabablarga ko'ra guruhdan chetlatildingiz.",
-          { parse_mode: "HTML" }
-        );
-        
+        // Keyin darhol unban qilish
+        await bot.unbanChatMember(GROUP_ID, user.telegram_id);
+
+        console.log(`User ${user.full_name} (${user.telegram_id}) guruhdan chiqarildi (ban+unban).`);
       } catch (error) {
-        console.error(`User ${user.telegram_id} ni guruhdan chiqarishda xatolik:`, error.message);
+        console.error(`User ${user.telegram_id} ni chiqarishda xatolik:`, error.message);
       }
     }
     
@@ -75,10 +70,41 @@ async function checkAndRemoveUsers() {
   }
 }
 
+// /unban komandasi
+bot.onText(/\/unban (.+)/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const fromId = msg.from.id;
+
+  // faqat guruh ichida ishlasin
+  if (msg.chat.type !== "supergroup" && msg.chat.type !== "group") {
+    return bot.sendMessage(chatId, "❌ Bu komanda faqat guruh ichida ishlaydi.");
+  }
+
+  // adminmi tekshirish
+  try {
+    const member = await bot.getChatMember(GROUP_ID, fromId);
+    if (member.status !== "administrator" && member.status !== "creator") {
+      return bot.sendMessage(chatId, "❌ Sizda bu komandani ishlatish huquqi yo‘q.");
+    }
+  } catch (err) {
+    return bot.sendMessage(chatId, "❌ Adminlikni tekshirishda xatolik.");
+  }
+
+  const userId = match[1].trim();
+
+  try {
+    await bot.unbanChatMember(GROUP_ID, userId);
+    bot.sendMessage(chatId, `✅ User <code>${userId}</code> unban qilindi.`, { parse_mode: "HTML" });
+    console.log(`User ${userId} guruhdan unban qilindi`);
+  } catch (error) {
+    console.error("Unban xatolik:", error.message);
+    bot.sendMessage(chatId, `❌ User <code>${userId}</code> ni unban qilishda xatolik: ${error.message}`, { parse_mode: "HTML" });
+  }
+});
+
 // /start komandasi
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
-  const firstName = msg.from.first_name || "Foydalanuvchi";
   
   userState[chatId] = "WAITING_FOR_FULLNAME";
   
@@ -142,7 +168,6 @@ bot.on("message", async (msg) => {
       console.error("❌ JSON faylga saqlashda xatolik:", fileError.message);
     }
     
-    // ✅ Link yaratish olib tashlandi
     await bot.sendMessage(
       chatId,
       `✅ <b>Rahmat!</b> Ro'yxatdan o'tish muvaffaqqiyatli yakunlandi!
@@ -154,7 +179,6 @@ bot.on("message", async (msg) => {
 
     console.log("✅ Xabar userga yuborildi");
     
-    // State ni tozalash
     delete userState[chatId];
     console.log("✅ Jarayon tugallandi");
     
